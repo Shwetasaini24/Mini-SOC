@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mini SOC — Security Operations Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link rel="stylesheet" href="/static/css/dashboard.css"/>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-icon">🛡</span>
+    <div>
+      <div class="logo-name">MINI SOC</div>
+      <div class="logo-tag">v1.0 LIVE</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a href="#" class="nav-item active" data-section="overview">
+      <span class="nav-icon">◈</span> Overview
+    </a>
+    <a href="#" class="nav-item" data-section="logs">
+      <span class="nav-icon">≡</span> Log Stream
+    </a>
+    <a href="#" class="nav-item" data-section="threats">
+      <span class="nav-icon">⚠</span> Threat Alerts
+      <span class="badge" id="threat-badge">0</span>
+    </a>
+    <a href="#" class="nav-item" data-section="upload">
+      <span class="nav-icon">↑</span> Upload Logs
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="operator-row">
+      <span class="op-dot"></span>
+      <span class="op-name">{{ username }}</span>
+    </div>
+    <a href="/logout" class="logout-btn">[ LOGOUT ]</a>
+  </div>
+</aside>
+
+<!-- ── Main Content ────────────────────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="page-title" id="page-title">OVERVIEW</span>
+      <span class="clock" id="clock"></span>
+    </div>
+    <div class="topbar-right">
+      <div class="sim-controls">
+        <button class="sim-btn start" id="simStart" onclick="startSim()">▶ SIMULATE</button>
+        <button class="sim-btn stop hidden" id="simStop" onclick="stopSim()">■ STOP SIM</button>
+      </div>
+      <button class="danger-btn" onclick="clearData()">🗑 CLEAR DATA</button>
+    </div>
+  </header>
+
+  <!-- ── SECTION: Overview ──────────────────────────────────────────────── -->
+  <section class="section active" id="section-overview">
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">TOTAL LOGS</div>
+        <div class="kpi-value" id="kpi-total">—</div>
+        <div class="kpi-sub">processed entries</div>
+      </div>
+      <div class="kpi-card kpi-danger">
+        <div class="kpi-label">THREATS</div>
+        <div class="kpi-value" id="kpi-threats">—</div>
+        <div class="kpi-sub">active alerts</div>
+      </div>
+      <div class="kpi-card kpi-high">
+        <div class="kpi-label">HIGH SEVERITY</div>
+        <div class="kpi-value" id="kpi-high">—</div>
+        <div class="kpi-sub">critical events</div>
+      </div>
+      <div class="kpi-card kpi-med">
+        <div class="kpi-label">MEDIUM SEVERITY</div>
+        <div class="kpi-value" id="kpi-med">—</div>
+        <div class="kpi-sub">warnings</div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-row">
+      <div class="chart-card wide">
+        <div class="chart-header">
+          <span>HOURLY LOG VOLUME (24H)</span>
+          <span class="live-dot" id="live-ind">● LIVE</span>
+        </div>
+        <canvas id="hourlyChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">STATUS CODE DISTRIBUTION</div>
+        <canvas id="statusChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Top IPs + Recent Threats -->
+    <div class="bottom-row">
+      <div class="table-card">
+        <div class="table-header">🎯 TOP ATTACKING IPs</div>
+        <table class="soc-table" id="topIpsTable">
+          <thead><tr><th>IP ADDRESS</th><th>REQUESTS</th><th>RISK</th></tr></thead>
+          <tbody id="topIpsTbody"></tbody>
+        </table>
+      </div>
+      <div class="table-card">
+        <div class="table-header">⚡ RECENT THREAT ALERTS</div>
+        <table class="soc-table">
+          <thead><tr><th>TYPE</th><th>IP</th><th>SEV</th></tr></thead>
+          <tbody id="recentThreatsTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION: Log Stream ────────────────────────────────────────────── -->
+  <section class="section" id="section-logs">
+    <div class="section-toolbar">
+      <div class="filter-group">
+        <label>SEVERITY FILTER:</label>
+        <select id="logFilter" onchange="loadLogs()">
+          <option value="">ALL</option>
+          <option value="HIGH">HIGH</option>
+          <option value="MEDIUM">MEDIUM</option>
+          <option value="LOW">LOW</option>
+        </select>
+      </div>
+      <span class="log-count" id="logCount">Loading…</span>
+    </div>
+
+    <div class="table-card full-width">
+      <table class="soc-table logs-table">
+        <thead>
+          <tr>
+            <th>TIME</th>
+            <th>IP ADDRESS</th>
+            <th>METHOD</th>
+            <th>PATH</th>
+            <th>STATUS</th>
+            <th>SEVERITY</th>
+          </tr>
+        </thead>
+        <tbody id="logsTbody"></tbody>
+      </table>
+    </div>
+
+    <div class="pagination" id="pagination"></div>
+  </section>
+
+  <!-- ── SECTION: Threat Alerts ─────────────────────────────────────────── -->
+  <section class="section" id="section-threats">
+    <div class="alert-grid" id="alertGrid">
+      <div class="no-data">No threats detected yet.<br>Upload logs or start simulation.</div>
+    </div>
+  </section>
+
+  <!-- ── SECTION: Upload ────────────────────────────────────────────────── -->
+  <section class="section" id="section-upload">
+    <div class="upload-wrap">
+      <div class="upload-card" id="dropZone">
+        <div class="upload-icon">↑</div>
+        <div class="upload-title">DROP LOG FILE HERE</div>
+        <div class="upload-sub">or click to browse</div>
+        <div class="upload-note">Supports: Apache access logs, auth.log, custom .txt / .log</div>
+        <input type="file" id="fileInput" accept=".txt,.log" style="display:none" onchange="uploadFile(this)"/>
+        <button class="upload-btn" onclick="document.getElementById('fileInput').click()">CHOOSE FILE</button>
+      </div>
+
+      <div class="upload-result hidden" id="uploadResult"></div>
+
+      <div class="sample-section">
+        <div class="sample-title">📄 SAMPLE LOG FORMAT ACCEPTED</div>
+        <pre class="sample-pre">192.168.1.100 - - [01/Jan/2025:10:00:01 +0000] "GET /index.php HTTP/1.1" 200 1024
+10.0.0.5 - - [01/Jan/2025:10:00:02 +0000] "POST /login HTTP/1.1" 401 512
+185.220.101.34 - - [01/Jan/2025:10:00:03 +0000] "GET /admin HTTP/1.1" 403 256</pre>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Loading overlay -->
+<div class="loader-overlay hidden" id="loaderOverlay">
+  <div class="loader-box">
+    <div class="loader-spinner"></div>
+    <div class="loader-text" id="loaderText">PROCESSING…</div>
+  </div>
+</div>
+
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>
